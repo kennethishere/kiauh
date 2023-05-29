@@ -9,84 +9,73 @@
 # This file may be distributed under the terms of the GNU GPLv3 license #
 #=======================================================================#
 
-# TODO: upload_log
-# TODO: all backup functions
-# TODO: doublecheck that nothing got missed!
-
+# shellcheck disable=SC2034
 set -e
-clear
 
-### sourcing all additional scripts
-KIAUH_SRCDIR="$(dirname -- "$(readlink -f "${BASH_SOURCE[0]}")")"
-for script in "${KIAUH_SRCDIR}/scripts/"*.sh; do . "${script}"; done
-for script in "${KIAUH_SRCDIR}/scripts/ui/"*.sh; do . "${script}"; done
+function set_globals() {
+  #=================== SYSTEM ===================#
+  SYSTEMD="/etc/systemd/system"
+  INITD="/etc/init.d"
+  ETCDEF="/etc/default"
 
-#===================================================#
-#=================== UPDATE KIAUH ==================#
-#===================================================#
+  #=================== KIAUH ====================#
+  green=$(echo -en "\e[92m")
+  yellow=$(echo -en "\e[93m")
+  magenta=$(echo -en "\e[35m")
+  red=$(echo -en "\e[91m")
+  cyan=$(echo -en "\e[96m")
+  white=$(echo -en "\e[39m")
+  INI_FILE="${HOME}/.kiauh.ini"
+  LOGFILE="/tmp/kiauh.log"
+  RESOURCES="${KIAUH_SRCDIR}/resources"
+  BACKUP_DIR="${HOME}/kiauh-backups"
 
-function update_kiauh() {
-  status_msg "Updating KIAUH ..."
+  #================== KLIPPER ===================#
+  KLIPPY_ENV="${HOME}/klippy-env"
+  KLIPPER_DIR="${HOME}/klipper"
+  KLIPPER_REPO="https://gitee.com/kenneth_lin/klipper.git"
 
-  cd "${KIAUH_SRCDIR}"
-  git reset --hard && git pull
+  #================= MOONRAKER ==================#
+  MOONRAKER_ENV="${HOME}/moonraker-env"
+  MOONRAKER_DIR="${HOME}/moonraker"
+  MOONRAKER_REPO="https://gitee.com/kenneth_lin/moonraker.git"
 
-  ok_msg "Update complete! Please restart KIAUH."
-  exit 0
+  #================= MAINSAIL ===================#
+  MAINSAIL_DIR="${HOME}/mainsail"
+
+  #================== FLUIDD ====================#
+  FLUIDD_DIR="${HOME}/fluidd"
+
+  #=============== KLIPPERSCREEN ================#
+  KLIPPERSCREEN_ENV="${HOME}/.KlipperScreen-env"
+  KLIPPERSCREEN_DIR="${HOME}/KlipperScreen"
+  KLIPPERSCREEN_REPO="https://github.com/kennethishere/KlipperScreen.git"
+
+  #========== MOONRAKER-TELEGRAM-BOT ============#
+  TELEGRAM_BOT_ENV="${HOME}/moonraker-telegram-bot-env"
+  TELEGRAM_BOT_DIR="${HOME}/moonraker-telegram-bot"
+  TELEGRAM_BOT_REPO="https://github.com/nlef/moonraker-telegram-bot.git"
+
+  #=============== PRETTY-GCODE =================#
+  PGC_DIR="${HOME}/pgcode"
+  PGC_REPO="https://github.com/Kragrathea/pgcode"
+
+  #================== NGINX =====================#
+  NGINX_SA="/etc/nginx/sites-available"
+  NGINX_SE="/etc/nginx/sites-enabled"
+  NGINX_CONFD="/etc/nginx/conf.d"
+
+  #=============== MOONRAKER-OBICO ================#
+  MOONRAKER_OBICO_DIR="${HOME}/moonraker-obico"
+  MOONRAKER_OBICO_REPO="https://github.com/TheSpaghettiDetective/moonraker-obico.git"
+
+  #=============== OCTOEVERYWHERE ================#
+  OCTOEVERYWHERE_ENV="${HOME}/octoeverywhere-env"
+  OCTOEVERYWHERE_DIR="${HOME}/octoeverywhere"
+  OCTOEVERYWHERE_REPO="https://github.com/QuinnDamerell/OctoPrint-OctoEverywhere.git"
+
+  #=============== Crowsnest ================#
+  CROWSNEST_DIR="${HOME}/crowsnest"
+  CROWSNEST_REPO="https://github.com/mainsail-crew/crowsnest.git"
+
 }
-
-#===================================================#
-#=================== KIAUH STATUS ==================#
-#===================================================#
-
-function kiauh_update_avail() {
-  [[ ! -d "${KIAUH_SRCDIR}/.git" ]] && return
-  local origin head
-
-  cd "${KIAUH_SRCDIR}"
-
-  ### abort if not on master branch
-  ! git branch -a | grep -q "\* master" && return
-
-  ### compare commit hash
-  git fetch -q
-  origin=$(git rev-parse --short=8 origin/master)
-  head=$(git rev-parse --short=8 HEAD)
-
-  if [[ ${origin} != "${head}" ]]; then
-    echo "true"
-  fi
-}
-
-function kiauh_update_dialog() {
-  [[ ! $(kiauh_update_avail) == "true" ]] && return
-  top_border
-  echo -e "|${green}              New KIAUH update available!              ${white}|"
-  hr
-  echo -e "|${green}  View Changelog: https://git.io/JnmlX                 ${white}|"
-  blank_line
-  echo -e "|${yellow}  It is recommended to keep KIAUH up to date. Updates  ${white}|"
-  echo -e "|${yellow}  usually contain bugfixes, important changes or new   ${white}|"
-  echo -e "|${yellow}  features. Please consider updating!                  ${white}|"
-  bottom_border
-
-  local yn
-  read -p "${cyan}###### Do you want to update now? (Y/n):${white} " yn
-  while true; do
-    case "${yn}" in
-      Y|y|Yes|yes|"")
-        do_action "update_kiauh"
-        break;;
-      N|n|No|no)
-        break;;
-      *)
-        deny_action "kiauh_update_dialog";;
-    esac
-  done
-}
-
-check_euid
-init_logfile
-set_globals
-kiauh_update_dialog
-main_menu
